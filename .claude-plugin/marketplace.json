@@ -1,0 +1,15 @@
+{
+  "name": "claude-rgb-skills",
+  "description": "Claude Code skills for RGB protocol development",
+  "owner": {
+    "name": "orbitalturtle",
+    "url": "https://github.com/orbitalturtle"
+  },
+  "plugins": [
+    {
+      "name": "rgb",
+      "source": "./",
+      "description": "RGB protocol dev skills: /rgb:review and /rgb:ci-checks"
+    }
+  ]
+}

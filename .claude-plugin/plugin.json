@@ -1,0 +1,9 @@
+{
+  "name": "rgb",
+  "description": "Claude Code skills for RGB protocol development: PR review and local CI checks tailored to RGB repos",
+  "version": "0.1.0",
+  "author": {
+    "name": "orbitalturtle",
+    "url": "https://github.com/orbitalturtle"
+  }
+}
