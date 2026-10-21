@@ -1,47 +1,40 @@
 ---
 name: review
-description: Review a PR, branch, or diff in an RGB protocol repo (rgb-lightning-node, rgb-lib, UTEXO forks, and similar) against a fixed criteria set — correctness bugs, RGB/consensus-sensitive logic, and Rust idioms/safety — and report findings via ReportFindings. Use whenever the user says "/review", asks to "review this PR", "review my changes", or wants a second pair of eyes on an RGB-related diff before merging. This is distinct from the general-purpose code-review skill: it bakes in RGB-specific scrutiny (contract state transitions, schema/consignment validation, client-side validation correctness) by default rather than requiring the user to specify criteria each time.
+description: Review a PR, branch, or diff in an RGB protocol repo (rgb-lightning-node, rgb-lib, UTEXO forks, and similar) for RGB/consensus-sensitive logic and commit-message/doc hygiene, while delegating generic correctness and Rust-idiom review to Claude Code's built-in code-review skill. Use whenever the user says "/review", asks to "review this PR", "review my changes", or wants a second pair of eyes on an RGB-related diff before merging. Supports --fix to apply findings to the working tree, same as code-review.
 ---
 
 # RGB PR Review
 
-Review RGB-related code changes against three fixed criteria, in priority order. This exists because generic review misses the ways RGB code specifically goes wrong — validation that runs in the wrong order, or untrusted consignment data trusted a step too early, reads fine to a reviewer who isn't thinking about client-side validation.
+For generic correctness bugs and Rust idioms, this delegates to the built-in `code-review` skill — no point re-deriving criteria Claude Code already maintains. This skill's own job is the part `code-review` has no way to know about: RGB/consensus-sensitive logic, and commit/doc hygiene.
 
-## 1. Determine what to diff
+## 1. What to diff & repo guidelines
+See `../_shared/diff-and-guidelines.md`.
 
-Accept an optional argument the same way the built-in `/code-review` skill does: a PR number, a branch name, or nothing (meaning the current working diff / branch vs. its upstream default branch).
+## 2. Delegate correctness & idioms
+Invoke the built-in `code-review` skill (Skill tool, `skill: "code-review"`) on the same diff target, passing through any effort level or `--fix` flag the user gave. Let it run its own pass and report its own findings — don't re-derive correctness/idiom criteria here. If it's unavailable in this environment, say so and continue with step 3 anyway.
 
-- PR number → `gh pr diff <number>` (or `gh pr checkout` first if you need to run anything against the code, not just read the diff).
-- Branch name → diff against the repo's default branch (`git merge-base` + `git diff`).
-- Nothing → `git diff` against the default branch, falling back to the working tree diff if the branch has no separate upstream.
+## 3. RGB-specific layer
+Review the same diff for:
 
-Work out the repo's default branch rather than assuming `main` or `master` — RGB-Tools repos use `master`.
+### RGB / consensus-sensitive logic
+- **Validation ordering**: state mutated before the validation meant to gate it completes.
+- **Trusting unvalidated input**: counterparty data (consignments, transfers, invoices) trusted without this node independently re-validating it.
+- **Schema/contract logic**: new transitions or state updates that could desync global state (double-spends, state the schema wouldn't recompute).
+- **Non-determinism & serialization**: floats, hash-map order, wall-clock time, wrong encoding, version mismatches — anything that could make honest parties disagree.
 
-## 2. Review criteria, in this order
+Name the specific state-consistency or validation-bypass scenario — not "this touches consensus, be careful."
 
-Rank findings by how severe they are within each category, but weight category 2 above category 3 when triaging what to report first — a Rust style nit matters far less than a subtly wrong validation path.
+### Commit messages & doc hygiene
+Lowest priority — raise only when worth fixing. This is about wording, not organization — see `tidy-commits` for whether the commit *set* is atomic:
+- Commit subjects over ~72 chars, or vague ones (`fix stuff`).
+- Comments/docs bloated relative to what they explain — restating the obvious or padding with filler.
+- The inverse: a non-obvious invariant or workaround with no comment explaining it.
 
-### a. Correctness bugs
-Standard review: logic errors, off-by-one/edge cases, incorrect error propagation, race conditions, resource leaks. A finding here needs a concrete failure scenario (specific input/state that produces a wrong result or crash) — not a stylistic preference.
+Quote the specific message/comment — don't just assert "could be better."
 
-### b. RGB / consensus-sensitive logic
-This is the category generic review tools miss. Look specifically for:
-- **Validation ordering**: state (UTXOs, allocations, contract state) mutated or acted on *before* the consignment/transfer/schema validation that's supposed to gate it completes.
-- **Trusting untrusted input**: data arriving from a counterparty (consignments, transfers, invoices) used without being re-validated locally — client-side validation means *this node* must independently verify, not rely on the sender having done so.
-- **Schema/contract logic**: changes to state transition rules, global/owned state schema, or Alluvium RGB contract logic — check that new transition types or state updates can't produce globally-inconsistent state (e.g. double-spend of the same allocation, state that doesn't match what the schema would recompute).
-- **Non-determinism in consensus paths**: floating point, hash map iteration order, wall-clock time, or other non-deterministic operations in any code path that affects validation or that different parties must agree on.
-- **Serialization**: wrong encoding/strict-encoding usage, version mismatches, or anything that could make two honest parties compute different results from the same data.
+## 4. Report & fix
+Report via `ReportFindings`, slugs `rgb-consensus` and `hygiene`, most severe first. Each finding needs a concrete scenario — for hygiene, the cost to a future reader, not a crash.
 
-A finding here should name the specific state-consistency or validation-bypass scenario it enables, not just "this touches consensus code, be careful."
+If `--fix` was passed, apply these findings to the working tree the same way `code-review --fix` applies its own — this is on top of whatever `code-review` already fixed in step 2, not a replacement for it.
 
-### c. Rust idioms & safety
-- `unsafe` blocks without a safety comment justifying the invariant being relied on.
-- `.unwrap()` / `.expect()` / `panic!()` on a path reachable from untrusted input (network data, user input, file parsing) — as opposed to a genuinely-unreachable invariant, which is fine.
-- Silently dropped errors: `.ok()` discarding an `Err`, overly broad `map_err` that loses information needed to debug, `let _ = fallible_call()`.
-- Clippy-style concerns worth flagging even if clippy would eventually catch them: needless clones, wrong error types, non-idiomatic `Option`/`Result` handling.
-
-## 3. Report findings
-
-Use the `ReportFindings` tool, most severe first (and category (b) findings outranking equally-severe (a)/(c) findings, since they're easier to miss and more consequential). Use category slugs `correctness`, `rgb-consensus`, `rust-safety`. Each finding needs a concrete failure scenario — what input or sequence of events triggers the problem — not just a description of what the code does.
-
-If nothing survives scrutiny in a category, that's a fine outcome — report an empty or shorter list rather than padding it with nitpicks to seem thorough.
+Empty/short categories are a fine outcome — don't pad with nitpicks.
