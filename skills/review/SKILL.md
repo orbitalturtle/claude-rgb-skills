@@ -43,6 +43,18 @@ Run this layer only when the repo has a remote pointing at `RGB-Tools/rgb-lightn
 2. Read `rln-conventions.md` (next to this file) and apply the `[judge]` items to the diff. **T1** (extend an existing test instead of adding one), **D1/D3/D4** (duplication, minimal diff, single-use helpers) and **C5** (failing-test-then-fix for bugs) are the ones maintainers raise most. Quote the evidence PR number when it helps the author see the request is a pattern.
 3. Lower the severity of a WARN when the PR description already justifies it, e.g. a C3 CI change that is actually needed.
 
+## Pre-mainnet: ignore backwards compatibility
+RLN, rgb-lib and the related RGB-Tools/UTEXO repos aren't meant for mainnet yet. Maintainers have said so in review: "we don't worry if this is breaking" (RLN #94) and "We don't need backwards compatibility" (RLN #95). Drop findings whose only concern is compatibility with earlier versions. That applies to the ones `code-review` reports in step 2 too. Examples:
+- breaking API, request/response or openapi changes, and renamed or removed fields or endpoints
+- missing migrations for on-disk or DB formats, and dropped support for old files or data dirs
+- serialization or storage format changes that make old nodes' data unreadable
+- missing deprecation paths, feature flags or shims kept for old callers
+
+Still report:
+- bugs within a single version, e.g. state that doesn't survive a restart (B1)
+- mismatches between peers running the same code
+- consensus-level disagreement covered in step 3
+
 ## 4. Report & fix
 Report via `ReportFindings`, slugs `rgb-consensus`, `hygiene` and `maintainer-conventions` (prefix each summary with its ID, e.g. `T1:`), most severe first. A maintainer-conventions finding's scenario is the review round it would cost, e.g. "maintainer will ask to fold this into `openchannel_fail`". Each finding needs a concrete scenario — for hygiene, the cost to a future reader, not a crash.
 
