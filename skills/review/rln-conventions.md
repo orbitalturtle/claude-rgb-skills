@@ -12,9 +12,9 @@ For `[script]` items, check the script's output; don't re-check them by hand.
 - **C2** `[script]` One signed commit, short lowercase imperative subject naming the change: `add /getpayment API`, `add support for HODL invoices`, `add preimage to Payment`. No `feat:` prefixes. (11 PRs: 7,21,52,55,62,63,64,91,101,126,163)
 - **C3** `[script]` Don't touch CI workflows, `.gitignore`, `Cargo.lock`, toolchain, dependency versions, `regtest.sh`, nix/compose files unless the change needs it. If it does, justify it in the PR. (7 PRs: 7,18,91,92,133,163,164)
 - **C4** `[script]` `cargo fmt` and `cargo clippy --all-targets --all-features -- -D warnings` on latest stable Rust before asking for review. (7 PRs: 18,52,62,63,64,91,113)
-- **C5** `[judge]` A **bug fix** is 2 commits: first the test reproducing the bug, then the fix. Push the test first so CI shows it failing. A **new feature** is 1 commit and doesn't need a failing test first. (5 PRs: 89,91,99,136,138; 101 inverse)
+- **C5** `[judge]` A **bug fix** is 2 commits in the same PR: first the test reproducing the bug, then the repair. Push the test first so CI shows it failing, then push the repair commit so CI shows it passing. When the repair lives in the rust-lightning fork, the second RLN commit is the submodule bump to the fix; don't leave it out or hold the PR at test-only. A **new feature** is 1 commit and doesn't need a failing test first. (5 PRs: 89,91,99,136,138; 101 inverse)
 - **C6** `[judge]` Self-review the diff before (re-)requesting review. Every resolved thread must actually be addressed. (4 PRs: 18,91,104,126)
-- **C7** `[script]` Don't commit a temporary `.gitmodules` URL or submodule pointer to a personal rust-lightning fork. Bump the pointer only after the RGB-Tools/rust-lightning PR has merged. (3 PRs: 69,113,138)
+- **C7** `[script]` Don't commit a temporary `.gitmodules` URL pointing at a personal rust-lightning fork. The submodule pointer must point at an RGB-Tools/rust-lightning commit. This doesn't override C5: the fix commit still goes right after the test commit. (3 PRs: 69,113,138)
 - **C8** `[script]` Subject ≤72 chars, blank line before the body. Update the message when the commit's content changes. (3 PRs: 7,89,163)
 
 ## Diff discipline

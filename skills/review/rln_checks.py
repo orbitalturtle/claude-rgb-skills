@@ -195,7 +195,7 @@ def main():
         report("C7", level, f".gitmodules changed{' (non-RGB-Tools url: ' + ', '.join(bad) + ')' if bad else ''} — don't commit a temp fork pointer; wait for the upstream rust-lightning merge")
     sub_paths = set(re.findall(r"path\s*=\s*(\S+)", show(head, ".gitmodules")))
     for f in sorted(sub_paths & set(files)):
-        report("C7", "NOTE", f"submodule pointer {f} moved — make sure it points at a merged RGB-Tools/rust-lightning commit")
+        report("C7", "NOTE", f"submodule pointer {f} moved — make sure it points at an RGB-Tools/rust-lightning commit (C5: bump goes in the commit after the failing test)")
 
     # A1 alphabetical order (only newly introduced disorder)
     for path, fn, what in ORDER_LISTS:
